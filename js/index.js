@@ -43,13 +43,13 @@ class Stage {
     this.document = document;
     // TODO: Add sound.
     this.canvas = this.document.getElementById("stage-canvas");
-		if (window.visualViewport != null) {
-			this.canvas.width = Math.floor(window.visualViewport.width);
-			this.canvas.height = Math.floor(window.visualViewport.height);
-		} else {
-			this.canvas.width = Math.floor(document.documentElement.clientWidth);
-			this.canvas.height = Math.floor(document.documentElement.clientHeight);
-		}
+    if (window.visualViewport != null) {
+      this.canvas.width = Math.floor(window.visualViewport.width);
+      this.canvas.height = Math.floor(window.visualViewport.height);
+    } else {
+      this.canvas.width = Math.floor(document.documentElement.clientWidth);
+      this.canvas.height = Math.floor(document.documentElement.clientHeight);
+    }
     this.ctx = this.canvas.getContext("2d");
     this.size = {"w": this.canvas.width, "h": this.canvas.height};
     this.ladderSize = this.size.h / (ROW_OF_LADDERS - HIDDEN_ROW_OF_LADDERS);
@@ -496,9 +496,22 @@ const documentReady = (callback) => {
   }
 };
 
-const run = () => {
-  const stage = new Stage(document, "stage-canvas", "scores", "levels");
-  stage.init();
+const imagesReady = (callback) => {
+  Promise.all(
+    Array.from(document.images).filter((image) => {
+      return !image.complete;
+    }).map((image) => {
+      return new Promise((resolve) => {
+        image.addEventListener("load", resolve);
+        image.addEventListener("error", resolve);
+      });
+    });
+  ).then(callback);
 };
 
-documentReady(run);
+documentReady(() => {
+  imagesReady(() => {
+    const stage = new Stage(document, "stage-canvas", "scores", "levels");
+    stage.init();  
+  });
+});
