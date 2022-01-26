@@ -14,25 +14,32 @@
     <title>Kouichi 100</title>
   </head>
   <body>
-    <div id="game-info-mask">
-      <div id="game-info">
+    <div class="mask" id="game-info-mask">
+      <div class="card" id="game-info-card">
         <h1>是中单就上 100 分！</h1>
         <div>当前分数：<span id="scores">0</span> 分</div>
         <div>当前段位：<span id="level">先锋</span></div>
       </div>
     </div>
-    <div id="dialog-mask">
-      <div id="before-game" style="display: none;">
-        <div>帮助小光攀爬危机四伏的天梯，上大分，做冠绝男神！</div>
-        <div>操作说明：触摸屏幕左/右侧或点击键盘的左/右方向键或者A/D键来向左/向右移动。</div>
-        <button id="start-button">开始游戏</button>
+    <div class="mask" id="dialog-mask">
+      <div class="card" id="before-game-card" style="display: none;">
+        <p>帮助小光攀爬危机四伏的天梯，上大分，做冠绝男神！</p>
+        <p>操作说明：触摸屏幕左/右侧或点击键盘的左/右方向键或者A/D键来向左/向右移动。</p>
+        <button class="button" id="start-button">开始游戏</button>
       </div>
-      <div id="after-game" style="display: none;">
+      <div class="card" id="after-game-card" style="display: none;">
         <h1>光一今天吃<span id="trap-name"></span>！</h1>
-        <div>我在“帮助光一天梯上分”游戏中帮光一上了 <span id="result-scores">0</span> 分，达到了<span id="result-level">先锋</span>！</div>
-        <div>截图分享给朋友，让他/她/它一起帮小光上分吧！</div>
+        <p>我在“帮助光一天梯上分”游戏中帮光一上了 <span id="result-scores">0</span> 分，达到了<span id="result-level">先锋</span>！</p>
+        <p>截图分享给朋友，让他/她/它一起帮小光上分吧！</p>
         <div><img src="images/qr.svg" alt="https://kouichi100.ismyonly.one/"></div>
-        <button id="restart-button">再来一次</button>
+        <button class="button" id="restart-button">再来一次</button>
+	<p>代码开源在 <a href="https://github.com/AlynxZhou/kouichi100/" target="_blank" rel="external nofollow noreferrer noopener">这个 GitHub 仓库</a>。</p>
+	<p>或者你有兴趣看看<a href="https://alynx.one/" target="_blank" rel="external nofollow noreferrer noopener">作者的博客</a>？</p>
+      </div>
+    </div>
+    <div class="mask" id="kouichi-dirty-talk-mask">
+      <div class="card" id="kouichi-dirty-talk-card" style="display: none;">
+	<p>狂小光说：“<span id="kouichi-dirty-talk"></span>”</p>
       </div>
     </div>
     <div id="container">

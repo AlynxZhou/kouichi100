@@ -1,15 +1,19 @@
-* {
-  margin: 0;
-  padding: 0;
-}
-
 html, body {
   margin: 0;
   padding: 0;
 }
 
+.button {
+  line-height: 1.2em;
+  text-decoration: none;
+  padding: 0.5em 1em;
+  border-radius: 0.3em;
+  color: #fff;
+  background: #9f1313;
+  border: 0.1em solid #ddd;
+}
+
 #container {
-    padding: 0 auto 0 auto;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -17,49 +21,47 @@ html, body {
     z-index: 0;
 }
 
-#game-info-mask {
+.mask {
     position: fixed;
-    height: 30vh;
     width: 100vw;
-    padding: 0 auto 0 auto;
+    height: 100vh;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    z-index: 2;
 }
 
-#dialog-mask {
-    position: fixed;
-    height: 100vh;
-    width: 100vw;
-    padding: 0 auto 0 auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+#game-info-mask, #kouichi-dirty-talk-mask {
+    height: 30vh;
     z-index: 1;
 }
 
-#game-info {
-    text-align: center;
+#kouichi-dirty-talk-mask {
+    justify-content: flex-end;
+}
+
+#dialog-mask {
+    z-index: 2;
+}
+
+.card {
     display: block;
-    background: rgba(255, 255, 255, 0.5);
     overflow: hidden;
     border-radius: 0.3em;
     padding: 0.5em 1em;
     margin: 0.5em;
+    background: #fff;
     box-shadow: 0 0 1em 0.5em rgba(0,0,0,0.19);
 }
 
-#before-game, #after-game {
+#game-info-card, #kouichi-dirty-talk-card {
     text-align: center;
-    display: block;
-    background: #fff;
-    overflow: hidden;
-    border-radius: 0.3em;
-    padding: 0.5em 1em;
-    margin: 0.5em;
-    box-shadow: 0 0 1em 0.5em rgba(0,0,0,0.19);
+    background: rgba(255, 255, 255, 0.5);
+}
+
+
+#before-game-card, #after-game-card {
+    text-align: center;
 }
 
 #game {
