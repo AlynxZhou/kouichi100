@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=10">
+    
+    <meta name="theme-color" content="#33363b">
+    <meta name="msapplication-TileColor" content="#33363b">
+    <meta name="author" content="Alynx Zhou">
+    <link rel="stylesheet" type="text/css" href="css/normalize.css">
+    <link rel="stylesheet" type="text/css" href="css/index.css">
+    <!-- Use defer to make image load first. -->
+    <script defer type="text/javascript" src="js/index.js"></script>
+    <title>Kouichi 100</title>
+  </head>
+  <body>
+    <div id="game-info-mask">
+      <div id="game-info">
+	<h1>是中单就上 100 分！</h1>
+	<div>当前分数：<span id="scores">0</span> 分</div>
+	<div>当前段位：<span id="level">先锋</span></div>
+      </div>
+    </div>
+    <div id="dialog-mask">
+      <div id="before-game" style="display: none;">
+	<div>帮助小光攀爬危机四伏的天梯，上大分，做冠绝男神！</div>
+	<div>操作说明：触摸屏幕左/右侧或点击键盘的左/右方向键或者A/D键来向左/向右移动。</div>
+	<button id="start-button">开始游戏</button>
+      </div>
+      <div id="after-game" style="display: none;">
+	<div>光一今天吃<span id="trap-name"></span>！</div>
+	<div>我在“帮助光一天梯上分”游戏中帮光一上了 <span id="result-scores">0</span> 分，达到了<span id="result-level">先锋</span>！</div>
+	<div>截图分享给朋友，让他/她/它一起帮小光上分吧！</div>
+	<div><img src="images/qr.svg" alt="https://kouichi100.ismyonly.one/"></div>
+	<button id="restart-button">再来一次</button>
+      </div>
+    </div>
+    <div id="container">
+      <div id="game">
+	<img src="images/player.png" id="player-image" style="display: none;">
+	<img src="images/ladder.png" id="ladder-image" style="display: none;">
+	<div id="cloud-images" style="display: none;">
+	  <img src="images/clouds/cloud1.png">
+	  <img src="images/clouds/cloud2.png">
+	  <img src="images/clouds/cloud3.png">
+	</div>
+	<div id="trap-images" style="display: none;">
+	  <img src="images/traps/chaos-meteor.png" alt="陨石">
+	  <img src="images/traps/devour.png" alt="铁头哥哥">
+	  <img src="images/traps/doom.png" alt="末日大">
+	  <img src="images/traps/infernal-blade.png" alt="烈火刀">
+	  <img src="images/traps/sun-strike.png" alt="天火">
+	</div>
+	<canvas id="stage-canvas" width="320" height="600"></canvas>
+      </div>
+    </div>
+  </body>
+</html>
