@@ -71,4 +71,14 @@ html, body {
 
 #stage-canvas {
   display: block;
+  /**
+   * Chrome gives real device pixel for clientHeight,
+   * so we re-scale canvas to 100vw for scaled monitors.
+   */
+  width: 100vw;
+  /**
+   * Don't set height to 100vh,
+   * because mobile browsers does not calculate top bar for vh.
+   */
+  /* height: 100vh; */
 }
