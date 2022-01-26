@@ -66,3 +66,7 @@ html, body {
     text-align: center;
     flex: 1 0 auto;
 }
+
+#stage-canvas {
+  display: block;
+}
