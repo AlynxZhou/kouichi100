@@ -7,13 +7,13 @@ const COLUMN_OF_LADDERS = 3;
 const NUM_OF_CLOUDS = 5;
 const DIRTY_TALK_TIMEOUT = 5000;
 const DIRTY_TALKS = [
-	"你不会以为你对这个游戏的理解能达到我的皮毛吧！",
-	"从 Dota 2 这个维度如果我不算大神，那这个世界就没有大神了。",
-	"军团一个支配给我打了 400 块了！",
-	"有些人肤浅得不知道怎么说才好，看我打肿你们的脸！",
-	"我和猪一样肥！",
-	"你到底想不想赢啊？",
-	"想想办法啊水友们！"
+  "你不会以为你对这个游戏的理解能达到我的皮毛吧！",
+  "从 Dota 2 这个维度如果我不算大神，那这个世界就没有大神了。",
+  "军团一个支配给我打了 400 块了！",
+  "有些人肤浅得不知道怎么说才好，看我打肿你们的脸！",
+  "我和猪一样肥！",
+  "你到底想不想赢啊？",
+  "想想办法啊水友们！"
 ];
 const MIN_SCORE_OF_LEVELS = [
   {"minScore": 0, "level": "先锋"},
@@ -65,9 +65,9 @@ class Stage {
     this.startTime = 0;
     this.lastTime = 0;
     this.currentTime = 0;
-		this.lastDirtyTalkTime = 0;
+    this.lastDirtyTalkTime = 0;
     this.scores = 0;
-		this.lastLevel = "先锋";
+    this.lastLevel = "先锋";
     this.state = Stage.BEFORE_GAME;
     this.scoresText = this.document.getElementById("scores");
     this.levelText = this.document.getElementById("level");
@@ -79,10 +79,10 @@ class Stage {
     this.resultScoresText = this.document.getElementById("result-scores");
     this.resultLevelText = this.document.getElementById("result-level");
     this.gameElement = this.document.getElementById("game");
-		this.kouichiDirtyTalkMask = this.document.getElementById("kouichi-dirty-talk-mask");
-		this.kouichiDirtyTalkMask.style.bottom = `${this.playerSize}px`;
-		this.kouichiDirtyTalkCard = this.document.getElementById("kouichi-dirty-talk-card");
-		this.kouichiDirtyTalkText = this.document.getElementById("kouichi-dirty-talk");
+    this.dirtyTalkMask = this.document.getElementById("dirty-talk-mask");
+    this.dirtyTalkMask.style.bottom = `${this.playerSize}px`;
+    this.dirtyTalkCard = this.document.getElementById("dirty-talk-card");
+    this.dirtyTalkText = this.document.getElementById("dirty-talk");
     this.onTouchEnd = this.onTouchEnd.bind(this);
   }
   onKeyDown(e) {
@@ -279,17 +279,17 @@ class Stage {
         // One line finished here.
         this.scores += SCORES_PRE_LADDER;
         this.scoresText.innerHTML = `${this.scores}`;
-				const level = this.getLevelByScores();
-				if (this.lastLevel !== level) {
-					this.levelText.innerHTML = this.lastLevel = level;
-					this.kouichiDirtyTalkText.innerHTML = randomChoice(DIRTY_TALKS);
-					this.kouichiDirtyTalkCard.style.display = "block";
-					this.lastDirtyTalkTime = this.currentTime;
-				}
-				if (this.kouichiDirtyTalkCard.style.display === "block" &&
-						this.currentTime - this.lastDirtyTalkTime > DIRTY_TALK_TIMEOUT) {
-					this.kouichiDirtyTalkCard.style.display = "none";
-				}
+        const level = this.getLevelByScores();
+        if (this.lastLevel !== level) {
+          this.levelText.innerHTML = this.lastLevel = level;
+          this.dirtyTalkText.innerHTML = randomChoice(DIRTY_TALKS);
+          this.dirtyTalkCard.style.display = "block";
+          this.lastDirtyTalkTime = this.currentTime;
+        }
+        if (this.dirtyTalkCard.style.display === "block" &&
+            this.currentTime - this.lastDirtyTalkTime > DIRTY_TALK_TIMEOUT) {
+          this.dirtyTalkCard.style.display = "none";
+        }
         // Choose one column to generate trap.
         if (Math.random() < percentRange(this.scores / 8888, 0.3, 1)) {
           const column = randomChoice(this.ladders);
@@ -344,8 +344,8 @@ class Stage {
     }
   }
   detectCollision(player, trap) {
-		// TODO: Traps seems always sorted in y axis naturally,
-		// maybe no need to iterate?
+    // TODO: Traps seems always sorted in y axis naturally,
+    // maybe no need to iterate?
     const playerLeft = player.position.x;
     const playerRight = player.position.x + player.size.w;
     const playerTop = player.position.y;

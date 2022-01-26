@@ -14,59 +14,59 @@ html, body {
 }
 
 #container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    z-index: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 0;
 }
 
 .mask {
-    position: fixed;
-    width: 100vw;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+  position: fixed;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
-#game-info-mask, #kouichi-dirty-talk-mask {
-    height: 30vh;
-    z-index: 1;
+#game-info-mask, #dirty-talk-mask {
+  height: 30vh;
+  z-index: 1;
 }
 
-#kouichi-dirty-talk-mask {
-    justify-content: flex-end;
+#dirty-talk-mask {
+  justify-content: flex-end;
 }
 
 #dialog-mask {
-    z-index: 2;
+  z-index: 2;
 }
 
 .card {
-    display: block;
-    overflow: hidden;
-    border-radius: 0.3em;
-    padding: 0.5em 1em;
-    margin: 0.5em;
-    background: #fff;
-    box-shadow: 0 0 1em 0.5em rgba(0,0,0,0.19);
+  display: block;
+  overflow: hidden;
+  border-radius: 0.3em;
+  padding: 0.5em 1em;
+  margin: 0.5em;
+  background: #fff;
+  box-shadow: 0 0 1em 0.5em rgba(0,0,0,0.19);
 }
 
-#game-info-card, #kouichi-dirty-talk-card {
-    text-align: center;
-    background: rgba(255, 255, 255, 0.5);
+#game-info-card, #dirty-talk-card {
+  text-align: center;
+  background: rgba(255, 255, 255, 0.5);
 }
 
 
 #before-game-card, #after-game-card {
-    text-align: center;
+  text-align: center;
 }
 
 #game {
-    text-align: center;
-    flex: 1 0 auto;
+  text-align: center;
+  flex: 1 0 auto;
 }
 
 #stage-canvas {
