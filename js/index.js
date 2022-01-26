@@ -505,13 +505,13 @@ const imagesReady = (callback) => {
         image.addEventListener("load", resolve);
         image.addEventListener("error", resolve);
       });
-    });
+    })
   ).then(callback);
 };
 
 documentReady(() => {
   imagesReady(() => {
-    const stage = new Stage(document, "stage-canvas", "scores", "levels");
+    const stage = new Stage(document);
     stage.init();  
   });
 });
