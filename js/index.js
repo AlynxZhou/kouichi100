@@ -43,8 +43,13 @@ class Stage {
     this.document = document;
     // TODO: Add sound.
     this.canvas = this.document.getElementById("stage-canvas");
-    this.canvas.width = Math.floor(window.visualViewport.width);
-    this.canvas.height = Math.floor(window.visualViewport.height);
+		if (window.visualViewport != null) {
+			this.canvas.width = Math.floor(window.visualViewport.width);
+			this.canvas.height = Math.floor(window.visualViewport.height);
+		} else {
+			this.canvas.width = Math.floor(document.documentElement.clientWidth);
+			this.canvas.height = Math.floor(document.documentElement.clientHeight);
+		}
     this.ctx = this.canvas.getContext("2d");
     this.size = {"w": this.canvas.width, "h": this.canvas.height};
     this.ladderSize = this.size.h / (ROW_OF_LADDERS - HIDDEN_ROW_OF_LADDERS);
