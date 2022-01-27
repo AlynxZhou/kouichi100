@@ -93,11 +93,85 @@ class Ladder extends Actor {
 }
 
 class Trap extends Actor {
+  constructor(stage, x, y, w, h, image, name, column) {
+    super(stage, x, y, w, h, image);
+    this.name = name;
+    this.column = column;
+    // Invalid by item.
+    this.invalid = false;
+    this.used = false;
+  }
+  use() {
+    if (!this.used) {
+      this.used = true;
+      --this.stage.player.lives;
+    }
+  }
+}
+
+class Item extends Actor {
   constructor(stage, x, y, w, h, image, name) {
     super(stage, x, y, w, h, image);
     this.name = name;
+    this.used = false;
+  }
+  use() {
+    if (!this.used) {
+      this.used = true;
+    }
   }
 }
+
+class Immortal extends Item {
+  constructor(stage, x, y, w, h, image, name) {
+    super(stage, x, y, w, h, image, name);
+  }
+  use() {
+    if (!this.used) {
+      this.used = true;
+      ++this.stage.player.lives;
+    }
+  }
+}
+
+class Aeon extends Item {
+  constructor(stage, x, y, w, h, image, name) {
+    super(stage, x, y, w, h, image, name);
+  }
+  use() {
+    if (!this.used) {
+      this.used = true;
+      const column = Math.floor(randomRange(0, this.stage.ladders.length));
+      for (const trap of this.stage.traps) {
+        if (trap.column === column) {
+          trap.invalid = true;
+        }
+      }
+    }
+  }
+}
+
+class Sphere extends Item {
+  constructor(stage, x, y, w, h, image, name) {
+    super(stage, x, y, w, h, image, name);
+  }
+  use() {
+    if (!this.used) {
+      this.used = true;
+      const trap = randomChoice(this.stage.traps);
+      // Maybe no trap on screen.
+      if (trap != null) {
+        trap.invalid = true;
+      }
+    }
+  }
+}
+
+const IDS_TO_ITEMS = {
+  "immortal": Immortal,
+  "aeon": Aeon,
+  "sphere": Sphere
+};
 
 class Player extends Actor {
   constructor(stage, w, h, image) {
@@ -106,6 +180,7 @@ class Player extends Actor {
     this.destination = null;
     this.startTime = 0;
     this.duration = 100;
+    this.lives = 1;
     this.column = 1;
     this.position = this.getPositionByColumn(this.column);
   }
@@ -165,11 +240,14 @@ class Stage {
     // Player and Trap must less then half so we can always escape.
     this.playerSize = this.ladderSize * 0.5;
     this.trapSize = this.ladderSize * 0.3;
+    this.itemSize = this.ladderSize * 0.3;
     this.ladderStart = (this.size.w - COLUMN_OF_LADDERS * this.ladderSize) / 2;
     this.baseSpeed = this.ladderSize / 1000;
     this.clouds = [];
     this.ladders = [];
     this.traps = [];
+    this.items = [];
+    this.lastTrap = null;
     this.cloudImages = Array.from(
       this.document.querySelectorAll("#cloud-images img")
     );
@@ -178,6 +256,10 @@ class Stage {
     this.trapImages = Array.from(
       this.document.querySelectorAll("#trap-images img")
     );
+    this.itemImages = Array.from(
+      this.document.querySelectorAll("#item-images img")
+    );
+    this.immortalImage = this.document.getElementById("immortal");
     this.player = null;
     this.pressed = {"up": false, "left": false, "right": false};
     this.startTime = 0;
@@ -236,8 +318,7 @@ class Stage {
       const h = w * 0.7;
       const cloud = new Cloud(this, x, y, w, h, randomChoice(this.cloudImages));
       cloud.setSpeed(
-        (Math.random() > 0.5 ? 1 : -1) * randomRange(0.4, 1.1) *
-          this.ladderSize / 1000,
+        (Math.random() > 0.5 ? 1 : -1) * randomRange(0.4, 1.1) * this.baseSpeed,
         0
       );
       this.clouds.push(cloud);
@@ -312,7 +393,8 @@ class Stage {
     }
     let column = this.player.column;
     if (this.pressed.up) {
-      // TODO: Use tools.
+      // TODO
+      this.pressed.up = false;
     } else if (this.pressed.left) {
       --column;
       // One press one step.
@@ -334,7 +416,7 @@ class Stage {
     return this.baseSpeed * (3000 + this.scores) / 3000;
   }
   setCloudsSpeed() {
-    const y = this.baseSpeed;
+    const y = this.baseSpeed * 0.9;
     for (const cloud of this.clouds) {
       // Cloud should also move horizonally.
       cloud.setSpeed(cloud.speed.x, y);
@@ -348,10 +430,20 @@ class Stage {
       }
     }
   }
+  setItemsSpeed() {
+    const y = this.getSpeedByScores() * 1.3;
+    for (const items of this.items) {
+      items.setSpeed(0, y);
+    }
+  }
   setTrapsSpeed() {
     const y = this.getSpeedByScores() * 1.3;
     for (const trap of this.traps) {
-      trap.setSpeed(0, y);
+      if (trap.invalid && trap.speed.x === 0) {
+        trap.setSpeed((Math.random() > 0.5 ? 1 : -1) * this.baseSpeed, y);
+      } else {
+        trap.setSpeed(trap.speed.x, y);
+      }
     }
   }
   getLevelByScores() {
@@ -382,6 +474,9 @@ class Stage {
       for (const ladder of column) {
         ladder.move(this.lastTime, this.currentTime);
       }
+    }
+    for (const item of this.items) {
+      item.move(this.lastTime, this.currentTime);
     }
     for (const trap of this.traps) {
       trap.move(this.lastTime, this.currentTime);
@@ -421,8 +516,8 @@ class Stage {
         }
         // Choose one column to generate trap.
         if (Math.random() < percentRange(this.scores / 8888, 0.3, 1)) {
-          const column = randomChoice(this.ladders);
-          const ladder = column[0];
+          const column = Math.floor(randomRange(0, this.ladders.length));
+          const ladder = this.ladders[column][0];
           const image = randomChoice(this.trapImages);
           this.traps.push(
             new Trap(
@@ -432,6 +527,22 @@ class Stage {
               this.trapSize,
               this.trapSize,
               image,
+              image.alt,
+              column
+            )
+          );
+        } else if (Math.random() < 0.3) {
+          const column = randomChoice(this.ladders);
+          const ladder = column[0];
+          const image = randomChoice(this.itemImages);
+          this.items.push(
+            new IDS_TO_ITEMS[image.id](
+              this,
+              ladder.position.x + (this.ladderSize - this.itemSize) / 2,
+              ladder.position.y,
+              this.itemSize,
+              this.itemSize,
+              image,
               image.alt
             )
           );
@@ -440,6 +551,10 @@ class Stage {
         break;
       }
     }
+    // Elegant way to delete items.
+    this.items = this.items.filter((e, i, a) => {
+      return e.position.y <= this.size.h;
+    });
     // Elegant way to delete traps.
     this.traps = this.traps.filter((e, i, a) => {
       return e.position.y <= this.size.h;
@@ -462,24 +577,6 @@ class Stage {
       percentRange(percent, dark.b, bright.b)
     })`;
   }
-  draw() {
-    this.ctx.clearRect(0, 0, this.size.w, this.size.h);
-    // Background.
-    this.ctx.fillStyle = this.getSkyColorByTime();
-    this.ctx.fillRect(0, 0, this.size.w, this.size.h);
-    for (const cloud of this.clouds) {
-      cloud.draw(this.ctx);
-    }
-    for (const column of this.ladders) {
-      for (const ladder of column) {
-        ladder.draw(this.ctx);
-      }
-    }
-    this.player.draw(this.ctx);
-    for (const trap of this.traps) {
-      trap.draw(this.ctx);
-    }
-  }
   detectCollision(actor1, actor2) {
     const actor1Left = actor1.position.x;
     const actor1Right = actor1.position.x + actor1.size.w;
@@ -494,26 +591,86 @@ class Stage {
       actor2Bottom > actor1Top &&
       actor2Top < actor1Bottom);
   }
-  checkResult() {
+  checkItems() {
+    for (const item of this.items) {
+      if (!item.invalid && this.detectCollision(this.player, item)) {
+        item.use();
+        // Don't trigger trap again.
+        item.invalid = true;
+      }
+    }
+  }
+  checkTraps() {
     // TODO: Traps seems always sorted in y axis naturally,
     // maybe no need to iterate?
     for (const trap of this.traps) {
-      if (this.detectCollision(this.player, trap)) {
-        this.stop(trap);
-        return false;
+      if (!trap.invalid && !trap.used && this.detectCollision(this.player, trap)) {
+        trap.use();
+        // Don't trigger trap again.
+        trap.used = true;
+        this.lastTrap = trap;
+        break;
       }
     }
-    return true;
+  }
+  draw() {
+    this.ctx.clearRect(0, 0, this.size.w, this.size.h);
+    // Background.
+    this.ctx.fillStyle = this.getSkyColorByTime();
+    this.ctx.fillRect(0, 0, this.size.w, this.size.h);
+    for (const cloud of this.clouds) {
+      cloud.draw(this.ctx);
+    }
+    for (const column of this.ladders) {
+      for (const ladder of column) {
+        ladder.draw(this.ctx);
+      }
+    }
+    this.player.draw(this.ctx);
+    for (const item of this.items) {
+      item.draw(this.ctx);
+    }
+    for (const trap of this.traps) {
+      trap.draw(this.ctx);
+    }
+    // Draw life indicator.
+    this.ctx.drawImage(
+      this.immortalImage,
+      0,
+      0,
+      this.playerSize,
+      this.playerSize
+    );
+    const fontSize = Math.floor(this.playerSize * 0.6);
+    this.ctx.font = `${fontSize}px sans`;
+    this.ctx.fillStyle = "rgb(0, 0, 0)";
+    this.ctx.fillText(
+      `x${this.player.lives}`,
+      (this.playerSize - fontSize) / 2,
+      this.playerSize + fontSize
+    );
+    this.ctx.strokeStyle = "rgb(255, 255, 255)";
+    this.ctx.lineWidth = 2;
+    this.ctx.strokeText(
+      `x${this.player.lives}`,
+      (this.playerSize - fontSize) / 2,
+      this.playerSize + fontSize
+    );
   }
   animate(time) {
     this.setCloudsSpeed();
     this.setLaddersSpeed();
+    this.setItemsSpeed();
     this.setTrapsSpeed();
     // Move all actor.
     this.update(time);
+    this.checkItems();
+    this.checkTraps();
     this.draw();
-    if (this.checkResult()) {
+    if (this.player.lives > 0) {
       window.requestAnimationFrame(this.animate.bind(this));
+    } else {
+      this.stop(this.lastTrap);
     }
   }
 }

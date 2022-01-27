@@ -1,4 +1,5 @@
 html, body {
+  font: 14px Roboto, "Noto Sans", "Noto Sans CJK", Helvetica, Arial, sans-serif;
   margin: 0;
   padding: 0;
 }
@@ -32,9 +33,13 @@ html, body {
 }
 
 #game-info-mask, #dirty-talk-mask {
-  height: 20vh;
+  height: 30vh;
   z-index: 1;
   justify-content: flex-end;
+}
+
+#game-info-mask {
+  justify-content: flex-start;
 }
 
 #dialog-mask {

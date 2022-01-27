@@ -11,6 +11,7 @@
     <link rel="stylesheet" type="text/css" href="css/index.css">
     <!-- Use defer to make image load first. -->
     <script defer type="text/javascript" src="js/index.js"></script>
+    <script async type="text/javascript" src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
     <title>Kouichi 100</title>
   </head>
   <body>
@@ -23,9 +24,11 @@
     </div>
     <div class="mask" id="dialog-mask">
       <div class="card" id="before-game-card" style="display: none;">
-        <p>帮助小光攀爬危机四伏的天梯，上大分，做冠绝男神！</p>
-        <p>操作说明：触摸屏幕左/右侧或点击键盘的左/右方向键或者A/D键来向左/向右移动。</p>
+        <p>帮助小光爬天梯，上大分，做冠绝男神！</p>
+        <p>操作说明：触摸屏幕左/右侧或点击键盘的左/右方向键或者 A/D 键来向左/向右移动，躲开方形的陷阱，吃掉圆形的道具。</p>
+        <p>不朽之守护可以增加一次生命，永恒之盘可以随机清除掉某一列上的所有陷阱，林肯法球可以随机清除某一个陷阱。</p>
         <button class="button" id="start-button">开始游戏</button>
+        <p><span id="busuanzi_container_site_pv">本站总访问量 <span id="busuanzi_value_site_pv"></span> 次</span></p>
       </div>
       <div class="card" id="after-game-card" style="display: none;">
         <h1>光一今天吃<span id="trap-name"></span>！</h1>
@@ -44,12 +47,17 @@
     </div>
     <div id="container">
       <div id="game">
-        <img src="images/player.png" id="player-image" style="display: none;">
+        <img src="images/kouichi.png" id="player-image" style="display: none;">
         <img src="images/ladder.png" id="ladder-image" style="display: none;">
         <div id="cloud-images" style="display: none;">
           <img src="images/clouds/cloud1.png">
           <img src="images/clouds/cloud2.png">
           <img src="images/clouds/cloud3.png">
+        </div>
+        <div id="item-images" style="display: none;">
+          <img id="immortal" src="images/items/aegis-of-the-immortal.png" alt="不朽之守护">
+          <img id="aeon" src="images/items/aeon-disk.png" alt="永恒之盘">
+          <img id="sphere" src="images/items/linken-s-sphere.png" alt="林肯法球">
         </div>
         <div id="trap-images" style="display: none;">
           <img src="images/traps/chaos-meteor.png" alt="陨石">
