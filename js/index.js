@@ -599,10 +599,10 @@ class Stage {
   }
   checkItems(time) {
     for (const item of this.items) {
-      if (!item.invalid && this.detectCollision(this.player, item)) {
+      if (!item.used && this.detectCollision(this.player, item)) {
         item.use();
         // Don't trigger trap again.
-        item.invalid = true;
+        item.used = true;
         break;
       }
     }
