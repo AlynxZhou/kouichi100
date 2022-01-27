@@ -1,11 +1,13 @@
 "use strict";
 
 const SCORES_PRE_LADDER = 30;
+const MAX_TRAP_SCORES = 8888;
 const ROW_OF_LADDERS = 7;
 const HIDDEN_ROW_OF_LADDERS = 1;
 const COLUMN_OF_LADDERS = 3;
 const NUM_OF_CLOUDS = 5;
 const FRAME_BLINK_TIMEOUT = 500;
+const SMOKE_TIMEOUT = 300;
 const DIRTY_TALK_TIMEOUT = 5000;
 const DIRTY_TALKS = [
   "你不会以为你对这个游戏的理解能达到我的皮毛吧！",
@@ -51,6 +53,17 @@ const setElementText = (element, text) => {
   element.innerHTML = text;
 };
 
+// We have less than 10 smokes so comparing string is just fine.
+const compareID = (a, b) => {
+  if (a.id < b.id) {
+    return -1;
+  } else if (a.id > b.id) {
+    return 1;
+  } else {
+    return 0;
+  }
+};
+
 class Actor {
   constructor(stage, x, y, w, h, image) {
     this.stage = stage;
@@ -69,6 +82,12 @@ class Actor {
   }
   setSpeed(x, y) {
     this.speed = {x, y};
+  }
+  getCenter() {
+    return {
+      "x": this.position.x + this.size.w / 2,
+      "y": this.position.y + this.size.h / 2
+    };
   }
   draw(ctx) {
     ctx.drawImage(
@@ -105,7 +124,19 @@ class Trap extends Actor {
   use() {
     if (!this.used) {
       this.used = true;
+      this.stage.addRedSmokeForTrap(this);
       --this.stage.player.lives;
+    }
+  }
+  draw(ctx) {
+    if (!this.used && !this.invalid) {
+      ctx.drawImage(
+        this.image,
+        this.position.x,
+        this.position.y,
+        this.size.w,
+        this.size.h
+      );
     }
   }
 }
@@ -119,6 +150,18 @@ class Item extends Actor {
   use() {
     if (!this.used) {
       this.used = true;
+      this.stage.addWhiteSmokeForItem(this);
+    }
+  }
+  draw(ctx) {
+    if (!this.used) {
+      ctx.drawImage(
+        this.image,
+        this.position.x,
+        this.position.y,
+        this.size.w,
+        this.size.h
+      );
     }
   }
 }
@@ -130,6 +173,7 @@ class Immortal extends Item {
   use() {
     if (!this.used) {
       this.used = true;
+      this.stage.addWhiteSmokeForItem(this);
       ++this.stage.player.lives;
     }
   }
@@ -142,10 +186,12 @@ class Aeon extends Item {
   use() {
     if (!this.used) {
       this.used = true;
+      this.stage.addWhiteSmokeForItem(this);
       const column = Math.floor(randomRange(0, this.stage.ladders.length));
       for (const trap of this.stage.traps) {
         if (trap.column === column) {
           trap.invalid = true;
+          this.stage.addBlackSmokeForTrap(trap);
         }
       }
     }
@@ -159,10 +205,12 @@ class Sphere extends Item {
   use() {
     if (!this.used) {
       this.used = true;
+      this.stage.addWhiteSmokeForItem(this);
       const trap = randomChoice(this.stage.traps);
       // Maybe no trap on screen.
       if (trap != null) {
         trap.invalid = true;
+        this.stage.addBlackSmokeForTrap(trap);
       }
     }
   }
@@ -223,6 +271,40 @@ class Player extends Actor {
   }
 }
 
+class Smoke extends Actor {
+  constructor(stage, x, y, w, h, images, startTime) {
+    super(stage, x, y, w, h, images[0]);
+    this.images = images;
+    this.startTime = startTime;
+    this.finished = false;
+  }
+  move(lastTime, currentTime) {
+    if (this.finished) {
+      return;
+    }
+    const timeDelta = currentTime - this.startTime;
+    if (timeDelta >= SMOKE_TIMEOUT) {
+      this.finished = true;
+    } else {
+      const percent = timeDelta / SMOKE_TIMEOUT;
+      this.image = this.images[
+        Math.floor(percentRange(percent, 0, this.images.length))
+      ];
+    }
+  }
+  draw(ctx) {
+    if (!this.finished) {
+      ctx.drawImage(
+        this.image,
+        this.position.x,
+        this.position.y,
+        this.size.w,
+        this.size.h
+      );
+    }
+  }
+}
+
 class Stage {
   constructor(document) {
     this.document = document;
@@ -244,6 +326,7 @@ class Stage {
     this.itemSize = this.ladderSize * 0.3;
     this.ladderStart = (this.size.w - COLUMN_OF_LADDERS * this.ladderSize) / 2;
     this.baseSpeed = this.ladderSize / 1000;
+    this.smokes = [];
     this.clouds = [];
     this.ladders = [];
     this.traps = [];
@@ -252,6 +335,15 @@ class Stage {
     this.cloudImages = Array.from(
       this.document.querySelectorAll("#cloud-images img")
     );
+    this.blackSmokeImages = Array.from(
+      this.document.querySelectorAll("#black-smoke-images img")
+    ).sort(compareID);
+    this.redSmokeImages = Array.from(
+      this.document.querySelectorAll("#red-smoke-images img")
+    ).sort(compareID);
+    this.whiteSmokeImages = Array.from(
+      this.document.querySelectorAll("#white-smoke-images img")
+    ).sort(compareID);
     this.playerImage = this.document.getElementById("player-image");
     this.ladderImage = this.document.getElementById("ladder-image");
     this.trapImages = Array.from(
@@ -391,7 +483,46 @@ class Stage {
     hideElement(this.beforeGameCard);
     showElement(this.afterGameCard);
   }
-  updatePlayerColumn(time) {
+  addBlackSmokeForTrap(trap) {
+    this.smokes.push(
+      new Smoke(
+        this,
+        trap.position.x,
+        trap.position.y,
+        trap.size.w,
+        trap.size.h,
+        this.blackSmokeImages,
+        this.currentTime
+      )
+    );
+  }
+  addRedSmokeForTrap(trap) {
+    this.smokes.push(
+      new Smoke(
+        this,
+        trap.position.x,
+        trap.position.y,
+        trap.size.w,
+        trap.size.h,
+        this.redSmokeImages,
+        this.currentTime
+      )
+    );
+  }
+  addWhiteSmokeForItem(item) {
+    this.smokes.push(
+      new Smoke(
+        this,
+        item.position.x,
+        item.position.y,
+        item.size.w,
+        item.size.h,
+        this.whiteSmokeImages,
+        this.currentTime
+      )
+    );
+  }
+  updatePlayerColumn() {
     if (!this.pressed.up && !this.pressed.left && !this.pressed.right) {
       return;
     }
@@ -414,7 +545,7 @@ class Stage {
     if (column >= COLUMN_OF_LADDERS) {
       column = COLUMN_OF_LADDERS - 1;
     }
-    this.player.setColumn(column, time);
+    this.player.setColumn(column, this.currentTime);
   }
   getSpeedByScores() {
     return this.baseSpeed * (3000 + this.scores) / 3000;
@@ -443,11 +574,7 @@ class Stage {
   setTrapsSpeed() {
     const y = this.getSpeedByScores() * 1.3;
     for (const trap of this.traps) {
-      if (trap.invalid && trap.speed.x === 0) {
-        trap.setSpeed((Math.random() > 0.5 ? 1 : -1) * this.baseSpeed, y);
-      } else {
-        trap.setSpeed(trap.speed.x, y);
-      }
+      trap.setSpeed(0, y);
     }
   }
   getLevelByScores() {
@@ -461,31 +588,9 @@ class Stage {
     }
     return level;
   }
-  update(time) {
-    this.currentTime = time;
-    if (this.startTime === 0) {
-      this.startTime = this.lastTime = this.currentTime;
-      return;
-    }
-    // Check key press.
-    this.updatePlayerColumn(time);
-    // Actual moving animation.
-    this.player.move(this.lastTime, this.currentTime);
+  moveClouds() {
     for (const cloud of this.clouds) {
       cloud.move(this.lastTime, this.currentTime);
-    }
-    for (const column of this.ladders) {
-      for (const ladder of column) {
-        ladder.move(this.lastTime, this.currentTime);
-      }
-    }
-    for (const item of this.items) {
-      item.move(this.lastTime, this.currentTime);
-    }
-    for (const trap of this.traps) {
-      trap.move(this.lastTime, this.currentTime);
-    }
-    for (let cloud of this.clouds) {
       if (cloud.position.x + cloud.size.w < 0 ||
         cloud.position.x > this.size.w) {
         cloud.setSpeed(-cloud.speed.x, cloud.speed.y);
@@ -494,6 +599,97 @@ class Stage {
         cloud.setPosition(cloud.position.x, -cloud.size.h);
       }
     }
+  }
+  moveLadders() {
+    for (const column of this.ladders) {
+      for (const ladder of column) {
+        ladder.move(this.lastTime, this.currentTime);
+      }
+    }
+  }
+  movePlayer() {
+    this.player.move(this.lastTime, this.currentTime);
+  }
+  moveItems() {
+    for (const item of this.items) {
+      item.move(this.lastTime, this.currentTime);
+    }
+  }
+  moveTraps() {
+    for (const trap of this.traps) {
+      trap.move(this.lastTime, this.currentTime);
+    }
+  }
+  moveSmokes() {
+    for (const smoke of this.smokes) {
+      smoke.move(this.lastTime, this.currentTime);
+    }
+  }
+  detectItemCollision(player, item) {
+    // Player and item are both circles.
+    const d = this.playerSize / 2 + this.itemSize / 2;
+    const playerCenter = player.getCenter();
+    const itemCenter = item.getCenter();
+    const v = {
+      "x": playerCenter.x - itemCenter.x,
+      "y": playerCenter.y - itemCenter.y
+    };
+    return Math.pow(v.x, 2) + Math.pow(v.y, 2) <= Math.pow(d, 2);
+  }
+  checkItems() {
+    for (const item of this.items) {
+      if (!item.used && this.detectItemCollision(this.player, item)) {
+        item.use();
+        // Don't trigger trap again.
+        item.used = true;
+        break;
+      }
+    }
+  }
+  detectTrapCollision(player, trap) {
+    // Player is circle, trap is rect.
+    // See <https://www.zhihu.com/question/24251545/answer/27184960>.
+    const playerRadius = this.playerSize / 2;
+    const playerCenter = player.getCenter();
+    const trapCenter = trap.getCenter();
+    const h = {"x": trap.size.w / 2, "y": trap.size.h / 2};
+    const v = {
+      "x": Math.abs(playerCenter.x - trapCenter.x),
+      "y": Math.abs(playerCenter.y - trapCenter.y)
+    };
+    const u = {"x": Math.max(v.x - h.x, 0), "y": Math.max(v.y - h.y, 0)};
+    return Math.pow(u.x, 2) + Math.pow(u.y, 2) <= Math.pow(playerRadius, 2);
+  }
+  checkTraps() {
+    // TODO: Traps seems always sorted in y axis naturally,
+    // maybe no need to iterate?
+    for (const trap of this.traps) {
+      if (!trap.invalid && !trap.used &&
+        this.detectTrapCollision(this.player, trap)) {
+        trap.use();
+        // Don't trigger trap again.
+        trap.used = true;
+        this.lastTrap = trap;
+        this.showFrameBlink = true;
+        this.lastFrameBlinkTime = this.currentTime;
+        break;
+      }
+    }
+  }
+  update() {
+    this.setCloudsSpeed();
+    this.setLaddersSpeed();
+    this.setItemsSpeed();
+    this.setTrapsSpeed();
+    // Check key press.
+    this.updatePlayerColumn();
+    // Actual moving animation.
+    this.moveClouds();
+    this.moveLadders();
+    this.movePlayer();
+    this.moveItems();
+    this.moveTraps();
+    this.moveSmokes();
     if (this.currentTime - this.lastFrameBlinkTime > FRAME_BLINK_TIMEOUT) {
       this.showFrameBlink = false;
     }
@@ -520,7 +716,9 @@ class Stage {
           this.showDirtyTalk = false;
         }
         // Choose one column to generate trap.
-        if (Math.random() < percentRange(this.scores / 8888, 0.3, 1)) {
+        if (Math.random() < percentRange(
+          this.scores / MAX_TRAP_SCORES, 0.3, 1)
+        ) {
           const column = Math.floor(randomRange(0, this.ladders.length));
           const ladder = this.ladders[column][0];
           const image = randomChoice(this.trapImages);
@@ -556,15 +754,20 @@ class Stage {
         break;
       }
     }
-    // Elegant way to delete items.
-    this.items = this.items.filter((e, i, a) => {
-      return e.position.y <= this.size.h;
-    });
+    this.checkItems();
+    this.checkTraps();
     // Elegant way to delete traps.
     this.traps = this.traps.filter((e, i, a) => {
-      return e.position.y <= this.size.h;
+      return !e.used && !e.invalid && e.position.y <= this.size.h;
     });
-    this.lastTime = this.currentTime;
+    // Elegant way to delete items.
+    this.items = this.items.filter((e, i, a) => {
+      return !e.used && e.position.y <= this.size.h;
+    });
+    // Elegant way to delete smokes.
+    this.smokes = this.smokes.filter((e, i, a) => {
+      return !e.finished;
+    });
   }
   getSkyColorByTime() {
     const bright = {"r": 135, "g": 206, "b": 235};
@@ -583,72 +786,42 @@ class Stage {
       percentRange(percent, dark.b, bright.b)
     })`;
   }
-  detectCollision(actor1, actor2) {
-    const actor1Left = actor1.position.x;
-    const actor1Right = actor1.position.x + actor1.size.w;
-    const actor1Top = actor1.position.y;
-    const actor1Bottom = actor1.position.y + actor1.size.h;
-    const actor2Left = actor2.position.x;
-    const actor2Right = actor2.position.x + actor2.size.w;
-    const actor2Top = actor2.position.y;
-    const actor2Bottom = actor2.position.y + actor2.size.h;
-    return (actor2Right > actor1Left &&
-      actor2Left < actor1Right &&
-      actor2Bottom > actor1Top &&
-      actor2Top < actor1Bottom);
-  }
-  checkItems(time) {
-    for (const item of this.items) {
-      if (!item.used && this.detectCollision(this.player, item)) {
-        item.use();
-        // Don't trigger trap again.
-        item.used = true;
-        break;
-      }
-    }
-  }
-  checkTraps(time) {
-    // TODO: Traps seems always sorted in y axis naturally,
-    // maybe no need to iterate?
-    for (const trap of this.traps) {
-      if (!trap.invalid && !trap.used &&
-        this.detectCollision(this.player, trap)) {
-        trap.use();
-        // Don't trigger trap again.
-        trap.used = true;
-        this.lastTrap = trap;
-        this.showFrameBlink = true;
-        this.lastFrameBlinkTime = time;
-        break;
-      }
-    }
-  }
-  draw() {
-    this.ctx.clearRect(0, 0, this.size.w, this.size.h);
-    // Background.
+  drawSky() {
     this.ctx.fillStyle = this.getSkyColorByTime();
     this.ctx.fillRect(0, 0, this.size.w, this.size.h);
-    if (this.showFrameBlink) {
-      this.ctx.lineWidth = this.ladderSize / 5;
-      this.ctx.strokeStyle = "red";
-      this.ctx.strokeRect(0, 0, this.size.w, this.size.h);
-    }
+  }
+  drawClouds() {
     for (const cloud of this.clouds) {
       cloud.draw(this.ctx);
     }
+  }
+  drawLadders() {
     for (const column of this.ladders) {
       for (const ladder of column) {
         ladder.draw(this.ctx);
       }
     }
+  }
+  drawPlayer() {
     this.player.draw(this.ctx);
-    for (const item of this.items) {
-      item.draw(this.ctx);
-    }
+
+  }
+  drawTraps() {
     for (const trap of this.traps) {
       trap.draw(this.ctx);
     }
-    // Draw life indicator.
+  }
+  drawItems() {
+    for (const item of this.items) {
+      item.draw(this.ctx);
+    }
+  }
+  drawSmokes() {
+    for (const smoke of this.smokes) {
+      smoke.draw(this.ctx);
+    }
+  }
+  drawLifeIndicator() {
     this.ctx.drawImage(
       this.immortalImage,
       0,
@@ -671,6 +844,22 @@ class Stage {
       (this.playerSize - fontSize) / 2,
       this.playerSize + fontSize
     );
+  }
+  draw() {
+    this.ctx.clearRect(0, 0, this.size.w, this.size.h);
+    this.drawSky();
+    if (this.showFrameBlink) {
+      this.ctx.lineWidth = this.ladderSize / 5;
+      this.ctx.strokeStyle = "red";
+      this.ctx.strokeRect(0, 0, this.size.w, this.size.h);
+    }
+    this.drawClouds();
+    this.drawLadders();
+    this.drawPlayer();
+    this.drawTraps();
+    this.drawItems();
+    this.drawSmokes();
+    this.drawLifeIndicator();
     if (this.showDirtyTalk) {
       if (this.dirtyTalkCard.style.display === "none") {
         showElement(this.dirtyTalkCard);
@@ -682,15 +871,13 @@ class Stage {
     }
   }
   animate(time) {
-    this.setCloudsSpeed();
-    this.setLaddersSpeed();
-    this.setItemsSpeed();
-    this.setTrapsSpeed();
-    // Move all actor.
-    this.update(time);
-    this.checkItems(time);
-    this.checkTraps(time);
+    this.currentTime = time;
+    if (this.startTime === 0) {
+      this.startTime = this.lastTime = this.currentTime;
+    }
+    this.update();
     this.draw();
+    this.lastTime = this.currentTime;
     if (this.player.lives > 0) {
       window.requestAnimationFrame(this.animate.bind(this));
     } else {
