@@ -32,11 +32,8 @@ html, body {
 }
 
 #game-info-mask, #dirty-talk-mask {
-  height: 30vh;
+  height: 20vh;
   z-index: 1;
-}
-
-#dirty-talk-mask {
   justify-content: flex-end;
 }
 
