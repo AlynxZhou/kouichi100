@@ -5,6 +5,7 @@ const ROW_OF_LADDERS = 7;
 const HIDDEN_ROW_OF_LADDERS = 1;
 const COLUMN_OF_LADDERS = 3;
 const NUM_OF_CLOUDS = 5;
+const FRAME_BLINK_TIMEOUT = 500;
 const DIRTY_TALK_TIMEOUT = 5000;
 const DIRTY_TALKS = [
   "你不会以为你对这个游戏的理解能达到我的皮毛吧！",
@@ -266,6 +267,9 @@ class Stage {
     this.lastTime = 0;
     this.currentTime = 0;
     this.lastDirtyTalkTime = 0;
+    this.showDirtyTalk = false;
+    this.lastFrameBlinkTime = 0;
+    this.showFrameBlink = false;
     this.scores = 0;
     this.lastLevel = "先锋";
     this.state = Stage.BEFORE_GAME;
@@ -481,7 +485,6 @@ class Stage {
     for (const trap of this.traps) {
       trap.move(this.lastTime, this.currentTime);
     }
-    this.lastTime = this.currentTime;
     for (let cloud of this.clouds) {
       if (cloud.position.x + cloud.size.w < 0 ||
         cloud.position.x > this.size.w) {
@@ -490,6 +493,9 @@ class Stage {
       if (cloud.position.y > this.size.h) {
         cloud.setPosition(cloud.position.x, -cloud.size.h);
       }
+    }
+    if (this.currentTime - this.lastFrameBlinkTime > FRAME_BLINK_TIMEOUT) {
+      this.showFrameBlink = false;
     }
     for (let j = ROW_OF_LADDERS - 1; j > 0; --j) {
       if (this.ladders[0][j].position.y >= this.size.h) {
@@ -507,12 +513,11 @@ class Stage {
           this.lastLevel = level;
           setElementText(this.levelText, level);
           setElementText(this.dirtyTalkText, randomChoice(DIRTY_TALKS));
-          showElement(this.dirtyTalkCard);
+          this.showDirtyTalk = true;
           this.lastDirtyTalkTime = this.currentTime;
         }
-        if (this.dirtyTalkCard.style.display === "block" &&
-          this.currentTime - this.lastDirtyTalkTime > DIRTY_TALK_TIMEOUT) {
-          hideElement(this.dirtyTalkCard);
+        if (this.currentTime - this.lastDirtyTalkTime > DIRTY_TALK_TIMEOUT) {
+          this.showDirtyTalk = false;
         }
         // Choose one column to generate trap.
         if (Math.random() < percentRange(this.scores / 8888, 0.3, 1)) {
@@ -559,6 +564,7 @@ class Stage {
     this.traps = this.traps.filter((e, i, a) => {
       return e.position.y <= this.size.h;
     });
+    this.lastTime = this.currentTime;
   }
   getSkyColorByTime() {
     const bright = {"r": 135, "g": 206, "b": 235};
@@ -591,24 +597,28 @@ class Stage {
       actor2Bottom > actor1Top &&
       actor2Top < actor1Bottom);
   }
-  checkItems() {
+  checkItems(time) {
     for (const item of this.items) {
       if (!item.invalid && this.detectCollision(this.player, item)) {
         item.use();
         // Don't trigger trap again.
         item.invalid = true;
+        break;
       }
     }
   }
-  checkTraps() {
+  checkTraps(time) {
     // TODO: Traps seems always sorted in y axis naturally,
     // maybe no need to iterate?
     for (const trap of this.traps) {
-      if (!trap.invalid && !trap.used && this.detectCollision(this.player, trap)) {
+      if (!trap.invalid && !trap.used &&
+        this.detectCollision(this.player, trap)) {
         trap.use();
         // Don't trigger trap again.
         trap.used = true;
         this.lastTrap = trap;
+        this.showFrameBlink = true;
+        this.lastFrameBlinkTime = time;
         break;
       }
     }
@@ -618,6 +628,11 @@ class Stage {
     // Background.
     this.ctx.fillStyle = this.getSkyColorByTime();
     this.ctx.fillRect(0, 0, this.size.w, this.size.h);
+    if (this.showFrameBlink) {
+      this.ctx.lineWidth = this.ladderSize / 5;
+      this.ctx.strokeStyle = "red";
+      this.ctx.strokeRect(0, 0, this.size.w, this.size.h);
+    }
     for (const cloud of this.clouds) {
       cloud.draw(this.ctx);
     }
@@ -656,6 +671,15 @@ class Stage {
       (this.playerSize - fontSize) / 2,
       this.playerSize + fontSize
     );
+    if (this.showDirtyTalk) {
+      if (this.dirtyTalkCard.style.display === "none") {
+        showElement(this.dirtyTalkCard);
+      }
+    } else {
+      if (this.dirtyTalkCard.style.display === "block") {
+        hideElement(this.dirtyTalkCard);
+      }
+    }
   }
   animate(time) {
     this.setCloudsSpeed();
@@ -664,8 +688,8 @@ class Stage {
     this.setTrapsSpeed();
     // Move all actor.
     this.update(time);
-    this.checkItems();
-    this.checkTraps();
+    this.checkItems(time);
+    this.checkTraps(time);
     this.draw();
     if (this.player.lives > 0) {
       window.requestAnimationFrame(this.animate.bind(this));
