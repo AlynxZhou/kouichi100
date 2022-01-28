@@ -394,10 +394,12 @@ class Stage {
     if (e.key === "Up" || e.key === "ArrowUp" || e.key === " ") {
         this.pressed.up = true;
     }
-    if (e.key === "Left" || e.key === "ArrowLeft" || e.key === "a") {
+    if (e.key === "Left" || e.key === "ArrowLeft" ||
+      e.key === "a" || e.key === "A") {
         this.pressed.left = true;
     }
-    if (e.key === "Right" || e.key === "ArrowRight" || e.key === "d") {
+    if (e.key === "Right" || e.key === "ArrowRight" ||
+      e.key === "d" || e.key === "D") {
         this.pressed.right = true;
     }
   }
@@ -525,11 +527,13 @@ class Stage {
     if (this.pressed.up) {
       // TODO
       this.pressed.up = false;
-    } else if (this.pressed.left) {
+    }
+    if (this.pressed.left) {
       --column;
       // One press one step.
       this.pressed.left = false;
-    } else if (this.pressed.right) {
+    }
+    if (this.pressed.right) {
       ++column;
       // One press one step.
       this.pressed.right = false;
