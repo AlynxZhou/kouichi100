@@ -97,13 +97,16 @@ class Actor {
     };
   }
   draw(ctx) {
-    ctx.drawImage(
-      this.image,
-      this.position.x,
-      this.position.y,
-      this.size.w,
-      this.size.h
-    );
+    // Some images may fail to load.
+    if (this.image != null) {
+      ctx.drawImage(
+        this.image,
+        this.position.x,
+        this.position.y,
+        this.size.w,
+        this.size.h
+      );
+    }
   }
 }
 
@@ -909,6 +912,8 @@ const imagesReady = (callback) => {
     }).map((image) => {
       return new Promise((resolve) => {
         image.addEventListener("load", resolve);
+        // TODO: Handle failed images?
+        // Currently we just ignore them.
         image.addEventListener("error", resolve);
       });
     })
