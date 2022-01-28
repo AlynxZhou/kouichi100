@@ -32,13 +32,9 @@ html, body {
   justify-content: center;
 }
 
-#game-info-mask, #dirty-talk-mask {
+#game-info-mask {
   height: 30vh;
   z-index: 1;
-  justify-content: flex-end;
-}
-
-#game-info-mask {
   justify-content: flex-start;
 }
 
@@ -60,7 +56,6 @@ html, body {
   text-align: center;
   background: rgba(255, 255, 255, 0.5);
 }
-
 
 #before-game-card, #after-game-card {
   text-align: center;

@@ -130,8 +130,10 @@ class Trap extends Actor {
   }
   draw(ctx) {
     if (!this.used && !this.invalid) {
-      ctx.drawImage(
-        this.image,
+      super.draw(ctx);
+      ctx.strokeStyle = "rgb(255, 255, 255)";
+      ctx.lineWidth = Math.floor(this.size.w / 15);
+      ctx.strokeRect(
         this.position.x,
         this.position.y,
         this.size.w,
@@ -155,13 +157,14 @@ class Item extends Actor {
   }
   draw(ctx) {
     if (!this.used) {
-      ctx.drawImage(
-        this.image,
-        this.position.x,
-        this.position.y,
-        this.size.w,
-        this.size.h
-      );
+      super.draw(ctx);
+      ctx.strokeStyle = "rgb(255, 255, 255)";
+      ctx.lineWidth = Math.floor(this.size.w / 15);
+      ctx.beginPath();
+      const center = this.getCenter()
+      ctx.arc(center.x, center.y, this.size.w / 2, 0, 2 * Math.PI);
+      ctx.closePath();
+      ctx.stroke();
     }
   }
 }
@@ -294,13 +297,7 @@ class Smoke extends Actor {
   }
   draw(ctx) {
     if (!this.finished) {
-      ctx.drawImage(
-        this.image,
-        this.position.x,
-        this.position.y,
-        this.size.w,
-        this.size.h
-      );
+      super.draw(ctx);
     }
   }
 }
@@ -375,8 +372,6 @@ class Stage {
     this.resultScoresText = this.document.getElementById("result-scores");
     this.resultLevelText = this.document.getElementById("result-level");
     this.gameElement = this.document.getElementById("game");
-    this.dirtyTalkMask = this.document.getElementById("dirty-talk-mask");
-    this.dirtyTalkMask.style.bottom = `${this.playerSize}px`;
     this.dirtyTalkCard = this.document.getElementById("dirty-talk-card");
     this.dirtyTalkText = this.document.getElementById("dirty-talk");
     this.onTouchEnd = this.onTouchEnd.bind(this);
@@ -640,8 +635,6 @@ class Stage {
     for (const item of this.items) {
       if (!item.used && this.detectItemCollision(this.player, item)) {
         item.use();
-        // Don't trigger trap again.
-        item.used = true;
         break;
       }
     }
@@ -667,8 +660,6 @@ class Stage {
       if (!trap.invalid && !trap.used &&
         this.detectTrapCollision(this.player, trap)) {
         trap.use();
-        // Don't trigger trap again.
-        trap.used = true;
         this.lastTrap = trap;
         this.showFrameBlink = true;
         this.lastFrameBlinkTime = this.currentTime;
@@ -804,7 +795,6 @@ class Stage {
   }
   drawPlayer() {
     this.player.draw(this.ctx);
-
   }
   drawTraps() {
     for (const trap of this.traps) {
@@ -850,7 +840,7 @@ class Stage {
     this.drawSky();
     if (this.showFrameBlink) {
       this.ctx.lineWidth = this.ladderSize / 5;
-      this.ctx.strokeStyle = "red";
+      this.ctx.strokeStyle = "rgb(255, 0, 0)";
       this.ctx.strokeRect(0, 0, this.size.w, this.size.h);
     }
     this.drawClouds();
