@@ -14,7 +14,7 @@ const DIRTY_TALKS = [
   "从 Dota 2 这个维度如果我不算大神，那这个世界就没有大神了。",
   "军团一个支配给我打了 400 块了！",
   "有些人肤浅得不知道怎么说才好，看我打肿你们的脸！",
-  "我和猪一样肥！",
+  "我像猪一样肥！",
   "你到底想不想赢啊？",
   "想想办法啊水友们！"
 ];
@@ -29,16 +29,16 @@ const MIN_SCORE_OF_LEVELS = [
   {"minScore": 6000, "level": "冠绝一世"}
 ];
 
-const randomChoice = (array) => {
-  return array[Math.floor(Math.random() * array.length)];
-};
-
 const percentRange = (percent, from, to) => {
   return percent * (to - from) + from;
 };
 
 const randomRange = (from, to) => {
   return percentRange(Math.random(), from, to);
+};
+
+const randomChoice = (array) => {
+  return array[Math.floor(randomRange(0, array.length))];
 };
 
 const hideElement = (element) => {
@@ -62,6 +62,13 @@ const compareID = (a, b) => {
   } else {
     return 0;
   }
+};
+
+const strokeCircle = (ctx, center, radius) => {
+  ctx.beginPath();
+  ctx.arc(center.x, center.y, radius, 0, 2 * Math.PI);
+  ctx.closePath();
+  ctx.stroke();
 };
 
 class Actor {
@@ -158,13 +165,11 @@ class Item extends Actor {
   draw(ctx) {
     if (!this.used) {
       super.draw(ctx);
+      const center = this.getCenter();
+      const radius = this.size.w / 2;
       ctx.strokeStyle = "rgb(255, 255, 255)";
       ctx.lineWidth = Math.floor(this.size.w / 15);
-      ctx.beginPath();
-      const center = this.getCenter()
-      ctx.arc(center.x, center.y, this.size.w / 2, 0, 2 * Math.PI);
-      ctx.closePath();
-      ctx.stroke();
+      strokeCircle(ctx, center, radius);
     }
   }
 }
@@ -816,27 +821,27 @@ class Stage {
     }
   }
   drawLifeIndicator() {
-    this.ctx.drawImage(
-      this.immortalImage,
-      0,
-      0,
-      this.playerSize,
-      this.playerSize
-    );
-    const fontSize = Math.floor(this.playerSize * 0.6);
+    const immortalSize = this.playerSize;
+    this.ctx.drawImage(this.immortalImage, 0, 0, immortalSize, immortalSize);
+    const radius = immortalSize / 2;
+    const center = {"x": radius, "y": radius};
+    this.ctx.strokeStyle = "rgb(255, 255, 255)";
+    this.ctx.lineWidth = Math.floor(immortalSize / 15);
+    strokeCircle(this.ctx, center, radius);
+    const fontSize = Math.floor(immortalSize * 0.6);
     this.ctx.font = `${fontSize}px sans`;
     this.ctx.fillStyle = "rgb(0, 0, 0)";
     this.ctx.fillText(
       `x${this.player.lives}`,
-      (this.playerSize - fontSize) / 2,
-      this.playerSize + fontSize
+      (immortalSize - fontSize) / 2,
+      immortalSize + fontSize
     );
     this.ctx.strokeStyle = "rgb(255, 255, 255)";
     this.ctx.lineWidth = 2;
     this.ctx.strokeText(
       `x${this.player.lives}`,
-      (this.playerSize - fontSize) / 2,
-      this.playerSize + fontSize
+      (immortalSize - fontSize) / 2,
+      immortalSize + fontSize
     );
   }
   draw() {
