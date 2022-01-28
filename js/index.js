@@ -50,7 +50,7 @@ const showElement = (element) => {
 };
 
 const setElementText = (element, text) => {
-  element.innerHTML = text;
+  element.textContent = text;
 };
 
 // We have less than 10 smokes so comparing string is just fine.
@@ -98,7 +98,7 @@ class Actor {
   }
   draw(ctx) {
     // Some images may fail to load.
-    if (this.image != null) {
+    if (!this.image.broken) {
       ctx.drawImage(
         this.image,
         this.position.x,
@@ -825,7 +825,9 @@ class Stage {
   }
   drawLifeIndicator() {
     const immortalSize = this.playerSize;
-    this.ctx.drawImage(this.immortalImage, 0, 0, immortalSize, immortalSize);
+    if (!this.immortalImage.broken) {
+      this.ctx.drawImage(this.immortalImage, 0, 0, immortalSize, immortalSize);
+    }
     const radius = immortalSize / 2;
     const center = {"x": radius, "y": radius};
     this.ctx.strokeStyle = "rgb(255, 255, 255)";
@@ -911,10 +913,18 @@ const imagesReady = (callback) => {
       return !image.complete;
     }).map((image) => {
       return new Promise((resolve) => {
-        image.addEventListener("load", resolve);
-        // TODO: Handle failed images?
+        image.addEventListener("load", () => {
+          image.broken = false;
+          resolve();
+        });
+        // TODO: Replace HTML image loading by JavaScript image loading?
         // Currently we just ignore them.
-        image.addEventListener("error", resolve);
+        image.addEventListener("error", () => {
+          // FIXME: Just a workaround.
+          // 404 returns complete before this.
+          image.broken = true;
+          resolve();
+        });
       });
     })
   ).then(callback);
