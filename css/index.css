@@ -57,7 +57,7 @@ html, body {
   background: rgba(255, 255, 255, 0.5);
 }
 
-#before-game-card, #after-game-card {
+#loading-assets-card, #before-game-card, #after-game-card {
   text-align: center;
 }
 

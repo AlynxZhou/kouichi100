@@ -1,5 +1,4 @@
 "use strict";
-
 const SCORES_PRE_LADDER = 30;
 const MAX_TRAP_SCORES = 8888;
 const ROW_OF_LADDERS = 7;
@@ -53,17 +52,6 @@ const setElementText = (element, text) => {
   element.textContent = text;
 };
 
-// We have less than 10 smokes so comparing string is just fine.
-const compareID = (a, b) => {
-  if (a.id < b.id) {
-    return -1;
-  } else if (a.id > b.id) {
-    return 1;
-  } else {
-    return 0;
-  }
-};
-
 const strokeCircle = (ctx, center, radius) => {
   ctx.beginPath();
   ctx.arc(center.x, center.y, radius, 0, 2 * Math.PI);
@@ -71,36 +59,105 @@ const strokeCircle = (ctx, center, radius) => {
   ctx.stroke();
 };
 
+const drawBorderedText = (ctx, text, x, y, w, h) => {
+  const fontSize = Math.floor(w / text.length);
+  const center = {"x": x + w / 2, "y": y + h / 2};
+  // We use divide for font size so monospace is needed.
+  ctx.font = `${fontSize}px monospace`;
+  // We want to put texts in center.
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = "rgb(0, 0, 0)";
+  ctx.fillText(text, center.x, center.y);
+  ctx.strokeStyle = "rgb(255, 255, 255)";
+  ctx.lineWidth = Math.max(1, Math.floor(fontSize / 20));
+  ctx.strokeText(text, center.x, center.y);
+};
+
+class ImageAsset {
+  constructor(src, alt = null) {
+    this.src = src;
+    this.alt = alt;
+    this.loaded = false;
+    this.image = null;
+  }
+
+  loadAsync(onStart, onLoad, onError) {
+    return new Promise((resolve, reject) => {
+      this.image = new window.Image();
+      this.image.addEventListener("load", () => {
+        this.loaded = true;
+        if (onLoad != null) {
+          onLoad(this);
+        }
+        resolve();
+      });
+      this.image.addEventListener("error", () => {
+        // We'll use Promise.all() and will ignore unloaded
+        // images so just call resolve() instead of reject() here.
+        this.loaded = false;
+        if (onError != null) {
+          onError(this);
+        }
+        resolve();
+      });
+      if (this.alt != null) {
+        this.image.alt = this.alt;
+      }
+      // Set image src after setting event listener,
+      // so events won't fire before setting event listener.
+      this.image.src = this.src;
+      if (onStart != null) {
+        onStart(this);
+      }
+    });
+  }
+}
+
 class Actor {
-  constructor(stage, x, y, w, h, image) {
+  constructor(stage, x, y, w, h, asset) {
     this.stage = stage;
     this.position = {x, y};
     this.speed = {"x": 0, "y": 0};
     this.size = {w, h};
-    this.image = image;
+    this.asset = asset;
   }
+
   move(lastTime, currentTime) {
     const timeDelta = currentTime - lastTime;
     this.position.x += this.speed.x * timeDelta;
     this.position.y += this.speed.y * timeDelta;
   }
+
   setPosition(x, y) {
     this.position = {x, y};
   }
+
   setSpeed(x, y) {
     this.speed = {x, y};
   }
+
   getCenter() {
     return {
       "x": this.position.x + this.size.w / 2,
       "y": this.position.y + this.size.h / 2
     };
   }
+
   draw(ctx) {
-    // Some images may fail to load.
-    if (!this.image.broken) {
+    // Some asset may fail to load.
+    if (this.asset.loaded) {
       ctx.drawImage(
-        this.image,
+        this.asset.image,
+        this.position.x,
+        this.position.y,
+        this.size.w,
+        this.size.h
+      );
+    } else if (this.asset.alt != null) {
+      drawBorderedText(
+        ctx,
+        this.asset.alt,
         this.position.x,
         this.position.y,
         this.size.w,
@@ -111,26 +168,21 @@ class Actor {
 }
 
 class Cloud extends Actor {
-  constructor(stage, x, y, w, h, image) {
-    super(stage, x, y, w, h, image);
-  }
 }
 
 class Ladder extends Actor {
-  constructor(stage, x, y, w, h, image) {
-    super(stage, x, y, w, h, image);
-  }
 }
 
 class Trap extends Actor {
-  constructor(stage, x, y, w, h, image, name, column) {
-    super(stage, x, y, w, h, image);
+  constructor(stage, x, y, w, h, asset, name, column) {
+    super(stage, x, y, w, h, asset);
     this.name = name;
     this.column = column;
     // Invalid by item.
     this.invalid = false;
     this.used = false;
   }
+
   use() {
     if (!this.used) {
       this.used = true;
@@ -138,11 +190,12 @@ class Trap extends Actor {
       --this.stage.player.lives;
     }
   }
+
   draw(ctx) {
     if (!this.used && !this.invalid) {
       super.draw(ctx);
       ctx.strokeStyle = "rgb(255, 255, 255)";
-      ctx.lineWidth = Math.floor(this.size.w / 15);
+      ctx.lineWidth = Math.max(1, Math.floor(this.size.w / 15));
       ctx.strokeRect(
         this.position.x,
         this.position.y,
@@ -154,33 +207,32 @@ class Trap extends Actor {
 }
 
 class Item extends Actor {
-  constructor(stage, x, y, w, h, image, name) {
-    super(stage, x, y, w, h, image);
+  constructor(stage, x, y, w, h, asset, name) {
+    super(stage, x, y, w, h, asset);
     this.name = name;
     this.used = false;
   }
+
   use() {
     if (!this.used) {
       this.used = true;
       this.stage.addWhiteSmokeForItem(this);
     }
   }
+
   draw(ctx) {
     if (!this.used) {
       super.draw(ctx);
       const center = this.getCenter();
       const radius = this.size.w / 2;
       ctx.strokeStyle = "rgb(255, 255, 255)";
-      ctx.lineWidth = Math.floor(this.size.w / 15);
+      ctx.lineWidth = Math.max(1, Math.floor(this.size.w / 15));
       strokeCircle(ctx, center, radius);
     }
   }
 }
 
 class Immortal extends Item {
-  constructor(stage, x, y, w, h, image, name) {
-    super(stage, x, y, w, h, image, name);
-  }
   use() {
     if (!this.used) {
       this.used = true;
@@ -191,9 +243,6 @@ class Immortal extends Item {
 }
 
 class Aeon extends Item {
-  constructor(stage, x, y, w, h, image, name) {
-    super(stage, x, y, w, h, image, name);
-  }
   use() {
     if (!this.used) {
       this.used = true;
@@ -210,9 +259,6 @@ class Aeon extends Item {
 }
 
 class Sphere extends Item {
-  constructor(stage, x, y, w, h, image, name) {
-    super(stage, x, y, w, h, image, name);
-  }
   use() {
     if (!this.used) {
       this.used = true;
@@ -227,15 +273,15 @@ class Sphere extends Item {
   }
 }
 
-const IDS_TO_ITEMS = {
+const TYPES_TO_ITEMS = {
   "immortal": Immortal,
   "aeon": Aeon,
   "sphere": Sphere
 };
 
 class Player extends Actor {
-  constructor(stage, w, h, image) {
-    super(stage, 0, 0, w, h, image);
+  constructor(stage, w, h, asset) {
+    super(stage, 0, 0, w, h, asset);
     this.startPosition = null;
     this.destination = null;
     this.startTime = 0;
@@ -244,12 +290,14 @@ class Player extends Actor {
     this.column = 1;
     this.position = this.getPositionByColumn(this.column);
   }
+
   moveTo(destination, startTime, duration = 100) {
     this.destination = destination;
     this.startPosition = this.position;
     this.startTime = startTime;
     this.duration = 100;
   }
+
   move(lastTime, currentTime) {
     if (this.destination == null) {
       return;
@@ -268,6 +316,7 @@ class Player extends Actor {
       );
     }
   }
+
   getPositionByColumn(column) {
     const ladderSize = this.stage.ladderSize;
     return {
@@ -276,19 +325,33 @@ class Player extends Actor {
       "y": this.stage.size.h - this.size.h
     };
   }
+
   setColumn(column, startTime) {
     this.column = column;
     this.moveTo(this.getPositionByColumn(column), startTime);
   }
+
+  draw(ctx) {
+    super.draw(ctx);
+    // Only draw border when player's image failed to load.
+    if (!this.asset.loaded) {
+      const center = this.getCenter();
+      const radius = this.size.w / 2;
+      ctx.strokeStyle = "rgb(255, 255, 255)";
+      ctx.lineWidth = Math.max(1, Math.floor(this.size.w / 15));
+      strokeCircle(ctx, center, radius);
+    }
+  }
 }
 
 class Smoke extends Actor {
-  constructor(stage, x, y, w, h, images, startTime) {
-    super(stage, x, y, w, h, images[0]);
-    this.images = images;
+  constructor(stage, x, y, w, h, assets, startTime) {
+    super(stage, x, y, w, h, assets[0]);
+    this.assets = assets;
     this.startTime = startTime;
     this.finished = false;
   }
+
   move(lastTime, currentTime) {
     if (this.finished) {
       return;
@@ -298,11 +361,12 @@ class Smoke extends Actor {
       this.finished = true;
     } else {
       const percent = timeDelta / SMOKE_TIMEOUT;
-      this.image = this.images[
-        Math.floor(percentRange(percent, 0, this.images.length))
+      this.asset = this.assets[
+        Math.floor(percentRange(percent, 0, this.assets.length))
       ];
     }
   }
+
   draw(ctx) {
     if (!this.finished) {
       super.draw(ctx);
@@ -337,27 +401,60 @@ class Stage {
     this.traps = [];
     this.items = [];
     this.lastTrap = null;
-    this.cloudImages = Array.from(
-      this.document.querySelectorAll("#cloud-images img")
+    this.playerImage = new ImageAsset("images/kouichi.png", "Player");
+    this.ladderImage = new ImageAsset("images/ladder.png", "Ladder");
+    this.trapImages = [
+      new ImageAsset("images/traps/chaos-meteor.png", "陨石"),
+      new ImageAsset("images/traps/devour.png", "铁头哥哥"),
+      new ImageAsset("images/traps/doom.png", "末日大"),
+      new ImageAsset("images/traps/infernal-blade.png", "烈火刀"),
+      new ImageAsset("images/traps/sun-strike.png", "天火"),
+      new ImageAsset("images/traps/drunken-brawler.png", "醉拳"),
+      new ImageAsset("images/traps/horn-toss.png", "颠勺"),
+      new ImageAsset("images/traps/land-mines.png", "地雷"),
+      new ImageAsset("images/traps/walrus-punch.png", "海象神拳")
+    ];
+    this.immortalImage = new ImageAsset(
+      "images/items/aegis-of-the-immortal.png",
+      "不朽之守护"
     );
-    this.blackSmokeImages = Array.from(
-      this.document.querySelectorAll("#black-smoke-images img")
-    ).sort(compareID);
-    this.redSmokeImages = Array.from(
-      this.document.querySelectorAll("#red-smoke-images img")
-    ).sort(compareID);
-    this.whiteSmokeImages = Array.from(
-      this.document.querySelectorAll("#white-smoke-images img")
-    ).sort(compareID);
-    this.playerImage = this.document.getElementById("player-image");
-    this.ladderImage = this.document.getElementById("ladder-image");
-    this.trapImages = Array.from(
-      this.document.querySelectorAll("#trap-images img")
-    );
-    this.itemImages = Array.from(
-      this.document.querySelectorAll("#item-images img")
-    );
-    this.immortalImage = this.document.getElementById("immortal");
+    this.itemImages = [
+      {"type": "immortal", "asset": this.immortalImage},
+      {
+        "type": "aeon",
+        "asset": new ImageAsset("images/items/aeon-disk.png", "永恒之盘")
+      },
+      {
+        "type": "sphere",
+        "asset": new ImageAsset("images/items/linken-s-sphere.png", "林肯法球")
+      }
+    ];
+    this.cloudImages = [
+      new ImageAsset("images/clouds/cloud1.png", "Cloud 1"),
+      new ImageAsset("images/clouds/cloud2.png", "Cloud 2"),
+      new ImageAsset("images/clouds/cloud3.png", "Cloud 3")
+    ];
+    this.blackSmokeImages = [
+      new ImageAsset("images/smokes/black/1.png", "Black Smoke 1"),
+      new ImageAsset("images/smokes/black/2.png", "Black Smoke 2"),
+      new ImageAsset("images/smokes/black/3.png", "Black Smoke 3"),
+      new ImageAsset("images/smokes/black/4.png", "Black Smoke 4"),
+      new ImageAsset("images/smokes/black/5.png", "Black Smoke 5")
+    ];
+    this.redSmokeImages = [
+      new ImageAsset("images/smokes/red/1.png", "Red Smoke 1"),
+      new ImageAsset("images/smokes/red/2.png", "Red Smoke 2"),
+      new ImageAsset("images/smokes/red/3.png", "Red Smoke 3"),
+      new ImageAsset("images/smokes/red/4.png", "Red Smoke 4"),
+      new ImageAsset("images/smokes/red/5.png", "Red Smoke 5")
+    ];
+    this.whiteSmokeImages = [
+      new ImageAsset("images/smokes/white/1.png", "White Smoke 1"),
+      new ImageAsset("images/smokes/white/2.png", "White Smoke 2"),
+      new ImageAsset("images/smokes/white/3.png", "White Smoke 3"),
+      new ImageAsset("images/smokes/white/4.png", "White Smoke 4"),
+      new ImageAsset("images/smokes/white/5.png", "White Smoke 5")
+    ];
     this.player = null;
     this.pressed = {"up": false, "left": false, "right": false};
     this.startTime = 0;
@@ -372,6 +469,9 @@ class Stage {
     this.state = Stage.BEFORE_GAME;
     this.scoresText = this.document.getElementById("scores");
     this.levelText = this.document.getElementById("level");
+    this.loadingAssetsCard = this.document.getElementById(
+      "loading-assets-card"
+    );
     this.beforeGameCard = this.document.getElementById("before-game-card");
     this.startButton = this.document.getElementById("start-button");
     this.afterGameCard = this.document.getElementById("after-game-card");
@@ -379,11 +479,49 @@ class Stage {
     this.trapNameText = this.document.getElementById("trap-name");
     this.resultScoresText = this.document.getElementById("result-scores");
     this.resultLevelText = this.document.getElementById("result-level");
-    this.gameElement = this.document.getElementById("game");
     this.dirtyTalkCard = this.document.getElementById("dirty-talk-card");
     this.dirtyTalkText = this.document.getElementById("dirty-talk");
     this.onTouchEnd = this.onTouchEnd.bind(this);
   }
+
+  loadAssetsAsync() {
+    const imageAssets = [this.playerImage, this.ladderImage].concat(
+      this.trapImages
+    ).concat(
+      this.itemImages.map((o) => {return o.asset;})
+    ).concat(
+      this.cloudImages
+    ).concat(
+      this.blackSmokeImages
+    ).concat(
+      this.redSmokeImages
+    ).concat(
+      this.whiteSmokeImages
+    );
+    setElementText(
+      this.document.getElementById("total"),
+      `${imageAssets.length}`
+    );
+    let completed = 0;
+    const completedText = this.document.getElementById("completed");
+    return Promise.all(
+      imageAssets.map(
+        (asset) => {
+          return asset.loadAsync(
+            null,
+            (asset) => {
+              setElementText(completedText, `${++completed}`);
+            },
+            (asset) => {
+              setElementText(completedText, `${++completed}`);
+              console.warn(`Load ${asset.src} failed`);
+            }
+          );
+        }
+      )
+    );
+  }
+
   onKeyDown(e) {
     e.preventDefault();
     if (e.repeat) {
@@ -400,18 +538,19 @@ class Stage {
       }
     }
     if (e.key === "Up" || e.key === "ArrowUp" || e.key === " ") {
-        this.pressed.up = true;
+      this.pressed.up = true;
     }
     if (e.key === "Left" || e.key === "ArrowLeft" ||
       e.key === "a" || e.key === "A") {
-        this.pressed.left = true;
+      this.pressed.left = true;
     }
     if (e.key === "Right" || e.key === "ArrowRight" ||
       e.key === "d" || e.key === "D") {
-        this.pressed.right = true;
+      this.pressed.right = true;
     }
   }
-  init() {
+
+  run() {
     for (let i = 0; i < NUM_OF_CLOUDS; ++i) {
       const x = Math.random() * this.size.w;
       const y = Math.random() * this.size.h;
@@ -457,9 +596,11 @@ class Stage {
       window.location.reload();
     });
     this.document.addEventListener("keydown", this.onKeyDown.bind(this));
+    hideElement(this.loadingAssetsCard);
     hideElement(this.afterGameCard);
     showElement(this.beforeGameCard);
   }
+
   onTouchEnd(e) {
     if (e.touches.length > 0) {
       // Still fingers on phone, we only handle one figner.
@@ -472,6 +613,7 @@ class Stage {
       this.pressed.right = true;
     }
   }
+
   start() {
     hideElement(this.beforeGameCard);
     hideElement(this.afterGameCard);
@@ -479,6 +621,7 @@ class Stage {
     this.document.addEventListener("touchend", this.onTouchEnd);
     this.animate(window.performance.now());
   }
+
   stop(trap) {
     this.document.removeEventListener("touchend", this.onTouchEnd);
     this.state = Stage.AFTER_GAME;
@@ -488,6 +631,7 @@ class Stage {
     hideElement(this.beforeGameCard);
     showElement(this.afterGameCard);
   }
+
   addBlackSmokeForTrap(trap) {
     this.smokes.push(
       new Smoke(
@@ -501,6 +645,7 @@ class Stage {
       )
     );
   }
+
   addRedSmokeForTrap(trap) {
     this.smokes.push(
       new Smoke(
@@ -514,6 +659,7 @@ class Stage {
       )
     );
   }
+
   addWhiteSmokeForItem(item) {
     this.smokes.push(
       new Smoke(
@@ -527,13 +673,13 @@ class Stage {
       )
     );
   }
+
   updatePlayerColumn() {
     if (!this.pressed.up && !this.pressed.left && !this.pressed.right) {
       return;
     }
     let column = this.player.column;
     if (this.pressed.up) {
-      // TODO
       this.pressed.up = false;
     }
     if (this.pressed.left) {
@@ -554,9 +700,11 @@ class Stage {
     }
     this.player.setColumn(column, this.currentTime);
   }
+
   getSpeedByScores() {
     return this.baseSpeed * (3000 + this.scores) / 3000;
   }
+
   setCloudsSpeed() {
     const y = this.baseSpeed * 0.9;
     for (const cloud of this.clouds) {
@@ -564,6 +712,7 @@ class Stage {
       cloud.setSpeed(cloud.speed.x, y);
     }
   }
+
   setLaddersSpeed() {
     const y = this.getSpeedByScores();
     for (const column of this.ladders) {
@@ -572,18 +721,21 @@ class Stage {
       }
     }
   }
+
   setItemsSpeed() {
     const y = this.getSpeedByScores() * 1.3;
     for (const items of this.items) {
       items.setSpeed(0, y);
     }
   }
+
   setTrapsSpeed() {
     const y = this.getSpeedByScores() * 1.3;
     for (const trap of this.traps) {
       trap.setSpeed(0, y);
     }
   }
+
   getLevelByScores() {
     let level = null;
     for (const o of MIN_SCORE_OF_LEVELS) {
@@ -595,6 +747,7 @@ class Stage {
     }
     return level;
   }
+
   moveClouds() {
     for (const cloud of this.clouds) {
       cloud.move(this.lastTime, this.currentTime);
@@ -607,6 +760,7 @@ class Stage {
       }
     }
   }
+
   moveLadders() {
     for (const column of this.ladders) {
       for (const ladder of column) {
@@ -614,24 +768,29 @@ class Stage {
       }
     }
   }
+
   movePlayer() {
     this.player.move(this.lastTime, this.currentTime);
   }
+
   moveItems() {
     for (const item of this.items) {
       item.move(this.lastTime, this.currentTime);
     }
   }
+
   moveTraps() {
     for (const trap of this.traps) {
       trap.move(this.lastTime, this.currentTime);
     }
   }
+
   moveSmokes() {
     for (const smoke of this.smokes) {
       smoke.move(this.lastTime, this.currentTime);
     }
   }
+
   detectItemCollision(player, item) {
     // Player and item are both circles.
     const d = this.playerSize / 2 + this.itemSize / 2;
@@ -643,6 +802,7 @@ class Stage {
     };
     return Math.pow(v.x, 2) + Math.pow(v.y, 2) <= Math.pow(d, 2);
   }
+
   checkItems() {
     for (const item of this.items) {
       if (!item.used && this.detectItemCollision(this.player, item)) {
@@ -651,6 +811,7 @@ class Stage {
       }
     }
   }
+
   detectTrapCollision(player, trap) {
     // Player is circle, trap is rect.
     // See <https://www.zhihu.com/question/24251545/answer/27184960>.
@@ -665,6 +826,7 @@ class Stage {
     const u = {"x": Math.max(v.x - h.x, 0), "y": Math.max(v.y - h.y, 0)};
     return Math.pow(u.x, 2) + Math.pow(u.y, 2) <= Math.pow(playerRadius, 2);
   }
+
   checkTraps() {
     // TODO: Traps seems always sorted in y axis naturally,
     // maybe no need to iterate?
@@ -679,6 +841,7 @@ class Stage {
       }
     }
   }
+
   update() {
     this.setCloudsSpeed();
     this.setLaddersSpeed();
@@ -740,16 +903,16 @@ class Stage {
         } else if (Math.random() < 0.3) {
           const column = randomChoice(this.ladders);
           const ladder = column[0];
-          const image = randomChoice(this.itemImages);
+          const item = randomChoice(this.itemImages);
           this.items.push(
-            new IDS_TO_ITEMS[image.id](
+            new TYPES_TO_ITEMS[item.type](
               this,
               ladder.position.x + (this.ladderSize - this.itemSize) / 2,
               ladder.position.y,
               this.itemSize,
               this.itemSize,
-              image,
-              image.alt
+              item.asset,
+              item.asset.alt
             )
           );
         }
@@ -772,6 +935,7 @@ class Stage {
       return !e.finished;
     });
   }
+
   getSkyColorByTime() {
     const bright = {"r": 135, "g": 206, "b": 235};
     const dark = {"r": 35, "g": 45, "b": 60};
@@ -789,15 +953,18 @@ class Stage {
       percentRange(percent, dark.b, bright.b)
     })`;
   }
+
   drawSky() {
     this.ctx.fillStyle = this.getSkyColorByTime();
     this.ctx.fillRect(0, 0, this.size.w, this.size.h);
   }
+
   drawClouds() {
     for (const cloud of this.clouds) {
       cloud.draw(this.ctx);
     }
   }
+
   drawLadders() {
     for (const column of this.ladders) {
       for (const ladder of column) {
@@ -805,55 +972,69 @@ class Stage {
       }
     }
   }
+
   drawPlayer() {
     this.player.draw(this.ctx);
   }
+
   drawTraps() {
     for (const trap of this.traps) {
       trap.draw(this.ctx);
     }
   }
+
   drawItems() {
     for (const item of this.items) {
       item.draw(this.ctx);
     }
   }
+
   drawSmokes() {
     for (const smoke of this.smokes) {
       smoke.draw(this.ctx);
     }
   }
+
   drawLifeIndicator() {
     const immortalSize = this.playerSize;
-    if (!this.immortalImage.broken) {
-      this.ctx.drawImage(this.immortalImage, 0, 0, immortalSize, immortalSize);
+    if (this.immortalImage.loaded) {
+      this.ctx.drawImage(
+        this.immortalImage.image,
+        0,
+        0,
+        immortalSize,
+        immortalSize
+      );
+    } else if (this.immortalImage.alt != null) {
+      drawBorderedText(
+        this.ctx,
+        this.immortalImage.alt,
+        0,
+        0,
+        immortalSize,
+        immortalSize
+      );
     }
     const radius = immortalSize / 2;
     const center = {"x": radius, "y": radius};
     this.ctx.strokeStyle = "rgb(255, 255, 255)";
-    this.ctx.lineWidth = Math.floor(immortalSize / 15);
+    this.ctx.lineWidth = Math.max(1, Math.floor(immortalSize / 15));
     strokeCircle(this.ctx, center, radius);
-    const fontSize = Math.floor(immortalSize * 0.6);
-    this.ctx.font = `${fontSize}px sans`;
-    this.ctx.fillStyle = "rgb(0, 0, 0)";
-    this.ctx.fillText(
+    drawBorderedText(
+      this.ctx,
       `x${this.player.lives}`,
-      (immortalSize - fontSize) / 2,
-      immortalSize + fontSize
-    );
-    this.ctx.strokeStyle = "rgb(255, 255, 255)";
-    this.ctx.lineWidth = 2;
-    this.ctx.strokeText(
-      `x${this.player.lives}`,
-      (immortalSize - fontSize) / 2,
-      immortalSize + fontSize
+      0,
+      immortalSize,
+      immortalSize,
+      immortalSize
     );
   }
+
   draw() {
     this.ctx.clearRect(0, 0, this.size.w, this.size.h);
     this.drawSky();
     if (this.showFrameBlink) {
-      this.ctx.lineWidth = this.ladderSize / 5;
+      this.ctx.lineWidth = Math.max(1, Math.floor(this.ladderSize / 5));
       this.ctx.strokeStyle = "rgb(255, 0, 0)";
       this.ctx.strokeRect(0, 0, this.size.w, this.size.h);
     }
@@ -874,6 +1055,7 @@ class Stage {
       }
     }
   }
+
   animate(time) {
     this.currentTime = time;
     if (this.startTime === 0) {
@@ -907,32 +1089,7 @@ const documentReady = (callback) => {
   }
 };
 
-const imagesReady = (callback) => {
-  Promise.all(
-    Array.from(document.images).filter((image) => {
-      return !image.complete;
-    }).map((image) => {
-      return new Promise((resolve) => {
-        image.addEventListener("load", () => {
-          image.broken = false;
-          resolve();
-        });
-        // TODO: Replace HTML image loading by JavaScript image loading?
-        // Currently we just ignore them.
-        image.addEventListener("error", () => {
-          // FIXME: Just a workaround.
-          // 404 returns complete before this.
-          image.broken = true;
-          resolve();
-        });
-      });
-    })
-  ).then(callback);
-};
-
 documentReady(() => {
-  imagesReady(() => {
-    const stage = new Stage(document);
-    stage.init();
-  });
+  const stage = new Stage(document);
+  stage.loadAssetsAsync().then(() => {stage.run();});
 });

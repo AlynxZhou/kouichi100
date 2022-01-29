@@ -26,6 +26,9 @@
       </div>
     </div>
     <div class="mask" id="dialog-mask">
+      <div class="card" id="loading-assets-card">
+        <p>正在加载资源，请稍等……<span id="completed">0</span>/<span id="total">0</span></p>
+      </div>
       <div class="card" id="before-game-card" style="display: none;">
         <p>帮助小光爬天梯，上大分，做冠绝男神！</p>
         <p>操作说明：触摸屏幕左/右侧或点击键盘的左/右方向键或者 A/D 键来向左/向右移动，躲开方形的陷阱，吃掉圆形的道具。</p>
@@ -46,50 +49,6 @@
     </div>
     <div id="container">
       <div id="game">
-        <img id="player-image" src="images/kouichi.png" style="display: none;">
-        <img id="ladder-image" src="images/ladder.png" style="display: none;">
-        <div id="cloud-images" style="display: none;">
-          <img src="images/clouds/cloud1.png">
-          <img src="images/clouds/cloud2.png">
-          <img src="images/clouds/cloud3.png">
-        </div>
-        <div id="item-images" style="display: none;">
-          <img id="immortal" src="images/items/aegis-of-the-immortal.png" alt="不朽之守护">
-          <img id="aeon" src="images/items/aeon-disk.png" alt="永恒之盘">
-          <img id="sphere" src="images/items/linken-s-sphere.png" alt="林肯法球">
-        </div>
-        <div id="trap-images" style="display: none;">
-          <img src="images/traps/chaos-meteor.png" alt="陨石">
-          <img src="images/traps/devour.png" alt="铁头哥哥">
-          <img src="images/traps/doom.png" alt="末日大">
-          <img src="images/traps/infernal-blade.png" alt="烈火刀">
-          <img src="images/traps/sun-strike.png" alt="天火">
-          <img src="images/traps/drunken-brawler.png" alt="醉拳">
-          <img src="images/traps/horn-toss.png" alt="颠勺">
-          <img src="images/traps/land-mines.png" alt="地雷">
-          <img src="images/traps/walrus-punch.png" alt="海象神拳">
-        </div>
-        <div id="black-smoke-images" style="display: none;">
-          <img id="black-1" src="images/smokes/black/1.png">
-          <img id="black-2" src="images/smokes/black/2.png">
-          <img id="black-3" src="images/smokes/black/3.png">
-          <img id="black-4" src="images/smokes/black/4.png">
-          <img id="black-5" src="images/smokes/black/5.png">
-        </div>
-        <div id="red-smoke-images" style="display: none;">
-          <img id="red-1" src="images/smokes/red/1.png">
-          <img id="red-2" src="images/smokes/red/2.png">
-          <img id="red-3" src="images/smokes/red/3.png">
-          <img id="red-4" src="images/smokes/red/4.png">
-          <img id="red-5" src="images/smokes/red/5.png">
-        </div>
-        <div id="white-smoke-images" style="display: none;">
-          <img id="white-1" src="images/smokes/white/1.png">
-          <img id="white-2" src="images/smokes/white/2.png">
-          <img id="white-3" src="images/smokes/white/3.png">
-          <img id="white-4" src="images/smokes/white/4.png">
-          <img id="white-5" src="images/smokes/white/5.png">
-        </div>
         <canvas id="stage-canvas" width="320" height="600"></canvas>
       </div>
     </div>
