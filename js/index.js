@@ -145,7 +145,7 @@ class Actor {
   }
 
   draw(ctx) {
-    // Some asset may fail to load.
+    // Some assets may fail to load.
     if (this.asset.loaded) {
       ctx.drawImage(
         this.asset.image,
