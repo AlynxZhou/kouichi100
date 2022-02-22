@@ -280,13 +280,13 @@ const TYPES_TO_ITEMS = {
 };
 
 class Player extends Actor {
-  constructor(stage, w, h, asset) {
+  constructor(stage, w, h, asset, lives = 1) {
     super(stage, 0, 0, w, h, asset);
     this.startPosition = null;
     this.destination = null;
     this.startTime = 0;
     this.duration = 100;
-    this.lives = 1;
+    this.lives = lives;
     this.column = 1;
     this.position = this.getPositionByColumn(this.column);
   }
@@ -401,7 +401,11 @@ class Stage {
     this.traps = [];
     this.items = [];
     this.lastTrap = null;
-    this.playerImage = new ImageAsset("images/kouichi.png", "Player");
+    this.birthday = this.checkBirtyday();
+    this.playerImage = new ImageAsset(
+      this.birthday ? "images/kouichi-birthday.png" : "images/kouichi.png",
+      "Player"
+    );
     this.ladderImage = new ImageAsset("images/ladder.png", "Ladder");
     this.trapImages = [
       new ImageAsset("images/traps/chaos-meteor.png", "陨石"),
@@ -472,6 +476,7 @@ class Stage {
     this.loadingAssetsCard = this.document.getElementById(
       "loading-assets-card"
     );
+    this.birthdayCard = this.document.getElementById("birthday-card");
     this.beforeGameCard = this.document.getElementById("before-game-card");
     this.startButton = this.document.getElementById("start-button");
     this.afterGameCard = this.document.getElementById("after-game-card");
@@ -482,6 +487,11 @@ class Stage {
     this.dirtyTalkCard = this.document.getElementById("dirty-talk-card");
     this.dirtyTalkText = this.document.getElementById("dirty-talk");
     this.onTouchEnd = this.onTouchEnd.bind(this);
+  }
+
+  checkBirtyday() {
+    const d = new Date();
+    return d.getDate() === 22 && d.getMonth() + 1 === 2;
   }
 
   loadAssetsAsync() {
@@ -587,7 +597,8 @@ class Stage {
       this,
       this.playerSize,
       this.playerSize,
-      this.playerImage
+      this.playerImage,
+      this.birthday ? 3 : 1
     );
     this.draw();
     this.startButton.addEventListener("click", this.start.bind(this));
@@ -598,6 +609,21 @@ class Stage {
     this.document.addEventListener("keydown", this.onKeyDown.bind(this));
     hideElement(this.loadingAssetsCard);
     hideElement(this.afterGameCard);
+    if (this.birthday) {
+      const d = new Date();
+      const year = d.getFullYear();
+      const month = d.getMonth() + 1;
+      const date = d.getDate();
+      const day = d.getDay();
+      const week = ["日", "一", "二", "三", "四", "五", "六"];
+      setElementText(
+        this.birthdayCard,
+        `${year} 年 ${month} 月 ${date} 日星期${
+           week[day]
+        }，VR 唯二尚存的二期生之一中单光一要过生日了。`
+      );
+      showElement(this.birthdayCard);
+    }
     showElement(this.beforeGameCard);
   }
 
@@ -615,6 +641,9 @@ class Stage {
   }
 
   start() {
+    if (this.birthday) {
+      hideElement(this.birthdayCard);
+    }
     hideElement(this.beforeGameCard);
     hideElement(this.afterGameCard);
     this.state = Stage.GAME;
@@ -628,6 +657,9 @@ class Stage {
     setElementText(this.trapNameText, trap.name);
     setElementText(this.resultScoresText, `${this.scores}`);
     setElementText(this.resultLevelText, this.getLevelByScores());
+    if (this.birthday) {
+      hideElement(this.birthdayCard);
+    }
     hideElement(this.beforeGameCard);
     showElement(this.afterGameCard);
   }
